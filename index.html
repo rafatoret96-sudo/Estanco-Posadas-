@@ -924,7 +924,7 @@ function setHeader(p){
   const lf=document.getElementById('logo-fichar');if(lf)lf.textContent=txt;
   const la=document.getElementById('logo-admin');if(la)la.textContent=txt;
 }
-let pendingProfile=null;
+ pendingProfile=null;
 async function enterProfile(p){
   pendingProfile=p;pinBuffer='';pinDots();
   document.getElementById('pin-error').textContent='';
