@@ -453,6 +453,8 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-body);min-hei
       <div class="action-btn gborder" onclick="openMisFichajes()"><div class="abi">🕐</div><div class="abl">Editar fichajes</div></div>
       <div class="action-btn gborder" onclick="openManual()"><div class="abi">✏️</div><div class="abl">Añadir fichaje olvidado</div></div>
       <div class="action-btn gborder" onclick="openMisAusencias()"><div class="abi">🖼️</div><div class="abl">Editar incidencias de Carmen</div></div>
+      <div class="action-btn gborder" onclick="exportPDF()"><div class="abi">📄</div><div class="abl">PDF de registros</div></div>
+      <div class="action-btn gborder" onclick="exportCSV(true)"><div class="abi">📊</div><div class="abl">Excel de registros</div></div>
     </div>
   </div>
   <!-- TAB CALENDARIO ADMIN -->
@@ -1169,7 +1171,15 @@ function updStats(f){const now=new Date(),ym=`${now.getFullYear()}-${String(now.
 function popFilter(f){const months=[...new Set(f.map(x=>x.timestamp.slice(0,7)))].sort().reverse();const sel=document.getElementById('filter-month');sel.innerHTML='<option value="">Todos los meses</option>';months.forEach(m=>{const[y,mo]=m.split('-');const lbl=new Date(+y,+mo-1,1).toLocaleDateString('es-ES',{month:'long',year:'numeric'});sel.innerHTML+=`<option value="${m}">${lbl.charAt(0).toUpperCase()+lbl.slice(1)}</option>`;});}
 async function renderRecords(){const f=await lF(),fi=document.getElementById('filter-month').value,fl=fi?f.filter(x=>x.timestamp.startsWith(fi)):f;const bd=gByDay(fl),days=Object.keys(bd).sort().reverse(),ct=document.getElementById('records-container');if(!days.length){ct.innerHTML='<div class="empty-state">No hay registros para este período.</div>';return;}ct.innerHTML='<div class="records-list">'+days.map(day=>{const ens=bd[day],fich=ens.filter(e=>e.tipo==='entrada'||e.tipo==='salida'),incs=ens.filter(e=>e.tipo==='incidencia'),mins=calcMin(fich),h=Math.floor(mins/60),m=Math.round(mins%60),dl=new Date(day+'T12:00:00').toLocaleDateString('es-ES',{weekday:'short',day:'numeric',month:'short'});const fr=[...fich].sort((a,b)=>a.timestamp.localeCompare(b.timestamp)).map(e=>{const hora=new Date(e.timestamp).toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'});return `<div class="entry-row"><div class="eico ${e.tipo}">${e.tipo==='entrada'?'▶':'■'}</div><div><div class="etime">${hora}${e.manual?'<span class="badge manual">MANUAL</span>':''}</div><div class="esub">${e.tipo==='entrada'?'Entrada':'Salida'}</div></div></div>`;}).join('');const ir=incs.map(e=>`<div class="entry-row"><div class="eico incidencia">${INC_I[e.subtipo]||'📎'}</div><div style="flex:1"><div class="etime">${INC_L[e.subtipo]||e.subtipo}<span class="badge inc">AUSENCIA</span>${e.foto?'<span class="badge" style="background:rgba(6,182,212,.15);color:var(--cyan)">📷 JUSTIF.</span>':''}</div><div class="esub">${e.nota||''}${e.horaSalida?' · '+e.horaSalida+(e.horaVuelta?'–'+e.horaVuelta:''):''}</div>${e.foto?`<img src="${e.foto}" style="margin-top:8px;max-width:180px;border-radius:8px;border:1px solid var(--border);cursor:pointer" onclick="showLightbox(this.src)" alt="Justificante">`:''}</div></div>`).join('');return `<div class="day-group"><div class="day-hdr"><span class="day-lbl">${dl}</span><span class="day-hrs">${mins>0?h+'h '+m+'m':'–'}</span></div><div class="day-entries">${fr}${ir}</div></div>`;}).join('')+'</div>';}
 // CSV
-async function exportCSV(){const f=await lF(),fi=document.getElementById('filter-month').value,fl=fi?f.filter(x=>x.timestamp.startsWith(fi)):f;if(!fl.length){showToast('No hay registros','error');return;}const bd=gByDay(fl),rows=['REGISTRO DE JORNADA DE TRABAJADORES - '+EMPRESA,`Empresa/Empleadora: ${EMPLEADORA}`,`Trabajadora: ${EMPLEADA}`,`N.I.F.: ${EMPLEADA_NIF};Afiliación S.S.: ${EMPLEADA_SS}`,`Exportado: ${new Date().toLocaleDateString('es-ES')}`,'','Fecha;Día;Tipo;Detalle;Entrada;Salida;Horas;Min;Manual'];let tm=0;Object.keys(bd).sort().forEach(day=>{const ens=bd[day],dl=new Date(day+'T12:00:00').toLocaleDateString('es-ES',{weekday:'long'}),fich=ens.filter(e=>e.tipo==='entrada'||e.tipo==='salida'),incs=ens.filter(e=>e.tipo==='incidencia');getPairs(fich).forEach(([a,b])=>{const ent=a?new Date(a.timestamp).toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'}):'';const sal=b?new Date(b.timestamp).toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'}):'';const mins=(a&&b)?Math.round((new Date(b.timestamp)-new Date(a.timestamp))/60000):0;tm+=mins;rows.push(`${day};${dl};Trabajo;;${ent};${sal};${(mins/60).toFixed(2)};${mins};${(a?.manual||b?.manual)?'Sí':''}`);});incs.forEach(e=>rows.push(`${day};${dl};Ausencia;${INC_L[e.subtipo]}${e.foto?' (con justificante)':''};;;0;0;Sí`));});rows.push('');rows.push(`TOTAL;;;;;; ${(tm/60).toFixed(2)};${Math.round(tm)};`);const blob=new Blob(['\uFEFF'+rows.join('\n')],{type:'text/csv;charset=utf-8;'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`carmen_${fi||'completo'}_${new Date().toISOString().slice(0,10)}.csv`;document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);showToast('✓ CSV descargado','success');}
+async function exportCSV(preview){const f=await lF(),fi=document.getElementById('filter-month').value,fl=fi?f.filter(x=>x.timestamp.startsWith(fi)):f;if(!fl.length){showToast('No hay registros','error');return;}const bd=gByDay(fl),rows=['REGISTRO DE JORNADA DE TRABAJADORES - '+EMPRESA,`Empresa/Empleadora: ${EMPLEADORA}`,`Trabajadora: ${EMPLEADA}`,`N.I.F.: ${EMPLEADA_NIF};Afiliación S.S.: ${EMPLEADA_SS}`,`Exportado: ${new Date().toLocaleDateString('es-ES')}`,'','Fecha;Día;Tipo;Detalle;Entrada;Salida;Horas;Min;Manual'];let tm=0;Object.keys(bd).sort().forEach(day=>{const ens=bd[day],dl=new Date(day+'T12:00:00').toLocaleDateString('es-ES',{weekday:'long'}),fich=ens.filter(e=>e.tipo==='entrada'||e.tipo==='salida'),incs=ens.filter(e=>e.tipo==='incidencia');getPairs(fich).forEach(([a,b])=>{const ent=a?new Date(a.timestamp).toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'}):'';const sal=b?new Date(b.timestamp).toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'}):'';const mins=(a&&b)?Math.round((new Date(b.timestamp)-new Date(a.timestamp))/60000):0;tm+=mins;rows.push(`${day};${dl};Trabajo;;${ent};${sal};${(mins/60).toFixed(2)};${mins};${(a?.manual||b?.manual)?'Sí':''}`);});incs.forEach(e=>rows.push(`${day};${dl};Ausencia;${INC_L[e.subtipo]}${e.foto?' (con justificante)':''};;;0;0;Sí`));});rows.push('');rows.push(`TOTAL;;;;;; ${(tm/60).toFixed(2)};${Math.round(tm)};`);
+  const csvText='\uFEFF'+rows.join('\n');
+  const filename=`carmen_${fi||'completo'}_${new Date().toISOString().slice(0,10)}.csv`;
+  if(preview){
+    const dataUrl='data:text/csv;charset=utf-8,'+encodeURIComponent(csvText);
+    openPreviewFromDataUrl(dataUrl,'Excel de registros · '+filename,filename);
+    return;
+  }
+  const blob=new Blob([csvText],{type:'text/csv;charset=utf-8;'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=filename;document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);showToast('✓ CSV descargado','success');}
 // PDF
 async function exportPDF(fiParam){const f=await lF(),fi=fiParam!==undefined?fiParam:document.getElementById('filter-month').value,fl=fi?f.filter(x=>x.timestamp.startsWith(fi)):f;if(!fl.length){showToast('No hay registros','error');return;}const bd=gByDay(fl),days=Object.keys(bd).sort(),now=new Date(),period=fi?new Date(fi+'-15').toLocaleDateString('es-ES',{month:'long',year:'numeric'}).replace(/^\w/,c=>c.toUpperCase()):'Período completo';let tm=0,td=0;const justificantes=[];const rows=days.map(day=>{const ens=bd[day],fich=ens.filter(e=>e.tipo==='entrada'||e.tipo==='salida'),incs=ens.filter(e=>e.tipo==='incidencia'),dl=new Date(day+'T12:00:00').toLocaleDateString('es-ES',{weekday:'long',day:'2-digit',month:'2-digit',year:'numeric'}),pairs=getPairs(fich);let html='';if(pairs.length){td++;pairs.forEach(([a,b],i)=>{const ent=a?new Date(a.timestamp).toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'}):'–';const sal=b?new Date(b.timestamp).toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'}):'Pendiente';const mins=(a&&b)?Math.round((new Date(b.timestamp)-new Date(a.timestamp))/60000):0;tm+=mins;const hs=mins>0?`${Math.floor(mins/60)}h ${Math.round(mins%60)}m`:'–';html+=`<tr><td>${i===0?dl:''}</td><td class="c">Trabajo</td><td class="c">${ent}${(a?.manual||b?.manual)?'*':''}</td><td class="c">${sal}</td><td class="c">${hs}</td></tr>`;});}incs.forEach(e=>{const hs=e.horaSalida||'–',hv=e.horaVuelta||'–';let justRef='';if(e.foto){justificantes.push({fecha:dl,tipo:INC_L[e.subtipo],nota:e.nota||'',foto:e.foto});justRef=` <strong>[Adj. ${justificantes.length}]</strong>`;}html+=`<tr class="tr-inc"><td>${!pairs.length?dl:''}</td><td class="c">${INC_L[e.subtipo]}${justRef}</td><td class="c">${['medico','familiar','lactancia'].includes(e.subtipo)?hs:'–'}</td><td class="c">${e.horaVuelta?hv:'–'}</td><td class="c">Ausencia</td></tr>`;});if(!html)html=`<tr><td>${dl}</td><td class="c" colspan="4" style="color:#aaa">Sin datos</td></tr>`;return html;}).join('');
   // anexo de justificantes
@@ -1217,7 +1227,9 @@ async function renderCal(id){
     if(isSel)cls+=' selected';
     let badge=(dom||cierre)?'🔴':tardeCerr?'🌗':(abierto&&isDom(ds))?'🔓':fest?'🎉':'';
     // orden fijo: 1) turnos  2) azafata  3) saca/pedido saca
-    const tChips=turnos.map(t=>{const ini=t.persona.charAt(0).toUpperCase()+'.';const ic=t.turno==='manana'?'☀':t.turno==='tarde'?'🌙':'🏖';return `<div class="cc chip-${t.turno}">${ic} ${ini}</div>`;}).join('');
+    const turnoOrder={manana:0,tarde:1,vacaciones:2};
+    const turnosOrdenados=[...turnos].sort((a,b)=>(turnoOrder[a.turno]??9)-(turnoOrder[b.turno]??9));
+    const tChips=turnosOrdenados.map(t=>{const ini=t.persona.charAt(0).toUpperCase()+'.';const ic=t.turno==='manana'?'☀':t.turno==='tarde'?'🌙':'🏖';return `<div class="cc chip-${t.turno}">${ic} ${ini}</div>`;}).join('');
     const azaChip=esp.filter(e=>e.tipo==='azafata').map(e=>`<div class="cc chip-azafata">${ESP_L.azafata}</div>`).join('');
     const sacaChips=esp.filter(e=>e.tipo==='saca'||e.tipo==='pedidosaca').map(e=>`<div class="cc chip-${e.tipo}">${ESP_L[e.tipo]}</div>`).join('');
     const otroChip=esp.filter(e=>e.tipo==='otro').map(e=>`<div class="cc chip-otro">${ESP_L.otro}</div>`).join('');
@@ -1296,13 +1308,16 @@ async function openNominas(isJefe){
   openModal('modal-nominas');
 }
 let previewData=null,previewName=null;
+function openPreviewFromDataUrl(dataUrl,title,filename){
+  previewData=dataUrl;previewName=filename;
+  document.getElementById('preview-title').textContent=title;
+  document.getElementById('preview-frame').src=dataUrl;
+  document.getElementById('preview-overlay').style.display='flex';
+}
 async function downloadNomina(id,label){
   const data=await dbG('estanco-'+id);
   if(!data){showToast('No se pudo cargar el PDF','error');return;}
-  previewData=data;previewName=label.replace(/[^a-zA-Z0-9áéíóúñÁÉÍÓÚÑ ]/g,'')+'.pdf';
-  document.getElementById('preview-title').textContent=label;
-  document.getElementById('preview-frame').src=data;
-  document.getElementById('preview-overlay').style.display='flex';
+  openPreviewFromDataUrl(data,label,label.replace(/[^a-zA-Z0-9áéíóúñÁÉÍÓÚÑ ]/g,'')+'.pdf');
 }
 function closePreview(){
   document.getElementById('preview-overlay').style.display='none';
