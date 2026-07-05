@@ -14,7 +14,11 @@
   --text:#f0f0f0;--muted:#666;--radius:12px;
   --font-head:'Space Grotesk',sans-serif;--font-body:'Inter',sans-serif;
 }
-body{background:var(--bg);color:var(--text);font-family:var(--font-body);min-height:100dvh;display:flex;flex-direction:column;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+:root[data-theme="light"]{
+  --bg:#f4f2ec;--surface:#ffffff;--surface2:#eeece4;--border:#dcd8cc;
+  --gold:#9c7d2e;--text:#1a1a1a;--muted:#8a8578;
+}
+body{background:var(--bg);color:var(--text);font-family:var(--font-body);min-height:100dvh;display:flex;flex-direction:column;-webkit-font-smoothing:antialiased;overflow-x:hidden;transition:background .2s,color .2s}
 .screen{display:none;flex-direction:column;min-height:100dvh}
 .screen.active{display:flex}
 .app-header{padding:16px 20px 0;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
@@ -126,7 +130,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-body);min-hei
 .cal-day.empty{background:transparent;border-color:transparent;cursor:default;pointer-events:none}
 .cal-day.closed-dom{background:rgba(255,255,255,.012);border-color:#1c1c1c;cursor:pointer}
 .cal-day.closed-manual{background:rgba(239,68,68,.06);border-color:rgba(239,68,68,.25)}
-.cal-day.is-festivo{background:rgba(59,130,246,.04);border-color:rgba(59,130,246,.2)}
+.cal-day.is-festivo{background:rgba(239,68,68,.09);border-color:rgba(239,68,68,.25)}
 .cal-day.today{border-color:var(--gold)!important;border-width:2px!important;background:rgba(201,168,76,.14)!important;box-shadow:0 0 12px rgba(201,168,76,.3)}
 .cal-day.past .cdn{color:var(--muted)}
 .cal-day.selected{border-color:var(--gold)!important;background:rgba(201,168,76,.1)}
@@ -140,12 +144,12 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-body);min-hei
 .cc.chip-manana{background:rgba(34,197,94,.22);color:#4ade80}
 .cc.chip-tarde{background:rgba(59,130,246,.22);color:#60a5fa}
 .cc.chip-vacaciones{background:rgba(201,168,76,.22);color:var(--gold)}
-.cc.chip-saca{background:rgba(6,182,212,.2);color:var(--cyan)}
+.cc.chip-saca{background:rgba(6,182,212,.12);color:var(--cyan);border:1px dashed rgba(6,182,212,.5)}
 .cc.chip-pedidosaca{background:rgba(6,182,212,.12);color:#67e8f9;border:1px dashed rgba(6,182,212,.4)}
 .cc.chip-abierto{background:rgba(34,197,94,.15);color:#86efac}
 .cc.chip-tardecerrado{background:rgba(255,255,255,.06);color:#888}
-.cal-day.half-closed{background:linear-gradient(180deg,var(--surface) 0%,var(--surface) 50%,#080808 50%,#080808 100%)}
-.cal-day.half-closed::after{content:'';display:none}
+.cal-day.half-closed{background:linear-gradient(180deg,var(--surface) 0%,var(--surface) 52%,rgba(255,255,255,.012) 52%,rgba(255,255,255,.012) 100%);border-color:#1c1c1c}
+.cal-day.half-closed .cal-events{position:relative}
 .cc.chip-azafata{background:rgba(168,85,247,.2);color:var(--purple)}
 .cc.chip-cierre{background:rgba(239,68,68,.18);color:#f87171}
 .cc.chip-festivo{background:rgba(59,130,246,.15);color:#93c5fd}
@@ -330,7 +334,10 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-body);min-hei
     <div class="role-card maria"  onclick="enterProfile('maria')" ><div class="rci">👩‍💼</div><div><div class="rcn">MARIA</div><div class="rcd">Jefa</div></div></div>
     <div class="role-card admin"  onclick="enterProfile('admin')" ><div class="rci">👩‍💼</div><div><div class="rcn">Mª CARMEN</div><div class="rcd">Jefa</div></div></div>
   </div>
-  <button onclick="doLogout()" style="margin-top:28px;background:none;border:1px solid var(--border);color:var(--muted);font-family:var(--font-body);font-size:12px;padding:8px 18px;border-radius:8px;cursor:pointer">Cerrar sesión</button>
+  <div style="display:flex;gap:10px;margin-top:28px">
+    <button onclick="toggleTheme()" id="theme-btn" style="background:none;border:1px solid var(--border);color:var(--muted);font-family:var(--font-body);font-size:12px;padding:8px 18px;border-radius:8px;cursor:pointer">🌙 Tema oscuro</button>
+    <button onclick="doLogout()" style="background:none;border:1px solid var(--border);color:var(--muted);font-family:var(--font-body);font-size:12px;padding:8px 18px;border-radius:8px;cursor:pointer">Cerrar sesión</button>
+  </div>
 </div>
 <!-- FICHAR -->
 <div class="screen" id="screen-fichar">
@@ -444,6 +451,8 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-body);min-hei
     <div class="action-grid">
       <div class="action-btn gborder" onclick="openModal('modal-subir-nomina');document.getElementById('nomina-label').value='';document.getElementById('nomina-file').value='';nominaFile=null;document.getElementById('nomina-file-btn').textContent='📎 Pulsar para elegir el PDF…'"><div class="abi">📤</div><div class="abl">Subir nómina</div></div>
       <div class="action-btn gborder" onclick="openMisFichajes()"><div class="abi">🕐</div><div class="abl">Editar fichajes</div></div>
+      <div class="action-btn gborder" onclick="openManual()"><div class="abi">✏️</div><div class="abl">Añadir fichaje olvidado</div></div>
+      <div class="action-btn gborder" onclick="openMisAusencias()"><div class="abi">🖼️</div><div class="abl">Editar incidencias de Carmen</div></div>
     </div>
   </div>
   <!-- TAB CALENDARIO ADMIN -->
@@ -546,11 +555,13 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-body);min-hei
       <div class="co" data-val="saca"         onclick="togE(this)">📦 Saca</div>
       <div class="co" data-val="pedidosaca"   onclick="togE(this)">📝 Pedido saca</div>
       <div class="co" data-val="azafata"      onclick="togE(this)">💁 Azafata</div>
+      <div class="co" data-val="otro"         onclick="togE(this)">📎 Otro</div>
+    </div>
+    <div class="chip-row" style="margin-top:8px" id="chip-esp2">
+      <div class="co" data-val="abierto"      onclick="togE(this)">🔓 Abierto</div>
       <div class="co" data-val="cierre"       onclick="togE(this)">🔒 Cerrado</div>
       <div class="co" data-val="tardecerrado" onclick="togE(this)">🌗 Tarde cerrado</div>
-      <div class="co" data-val="abierto"      onclick="togE(this)">🔓 Abierto</div>
       <div class="co" data-val="festivo"      onclick="togE(this)">🎉 Festivo</div>
-      <div class="co" data-val="otro"         onclick="togE(this)">📎 Otro</div>
     </div>
     <label class="fl">Nota del evento</label><input type="text" class="fi" id="mev-nota" placeholder="Ej: Azafata Marlboro 10:00–14:00">
     <div class="modal-actions">
@@ -726,6 +737,14 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-body);min-hei
   <div id="print-content"></div>
 </div>
 <div class="toast" id="toast"></div>
+<div id="preview-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:600;flex-direction:column">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0">
+    <span id="preview-title" style="font-family:var(--font-head);font-size:13px;font-weight:700;color:var(--gold);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;margin-right:10px">Documento</span>
+    <button onclick="downloadPreviewedFile()" style="background:var(--gold);color:#000;border:none;border-radius:8px;padding:8px 14px;font-family:var(--font-head);font-size:12px;font-weight:700;cursor:pointer;margin-right:8px;white-space:nowrap">↓ Descargar</button>
+    <button onclick="closePreview()" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:8px 12px;cursor:pointer;font-size:14px">✕</button>
+  </div>
+  <iframe id="preview-frame" style="flex:1;border:none;background:#fff"></iframe>
+</div>
 <!-- Firebase (CDN compat) -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
@@ -813,9 +832,12 @@ function loginErrorMsg(code){
     'auth/invalid-credential':'Correo o contraseña incorrectos.',
     'auth/too-many-requests':'Demasiados intentos. Espera unos minutos.',
     'auth/network-request-failed':'Sin conexión. Comprueba tu red.',
-    'auth/missing-password':'Introduce la contraseña.'
+    'auth/missing-password':'Introduce la contraseña.',
+    'auth/operation-not-allowed':'El acceso por correo/contraseña NO está habilitado en Firebase (Sign-in method).',
+    'auth/unauthorized-domain':'Este dominio no está autorizado en Firebase (Authentication → Dominios autorizados).',
+    'auth/user-disabled':'Esta cuenta está deshabilitada en Firebase.'
   };
-  return m[code]||'No se pudo iniciar sesión. Inténtalo de nuevo.';
+  return (m[code]||'No se pudo iniciar sesión.')+' [código: '+(code||'desconocido')+']';
 }
 async function doLogin(){
   const email=document.getElementById('login-email').value.trim();
@@ -924,7 +946,7 @@ function setHeader(p){
   const lf=document.getElementById('logo-fichar');if(lf)lf.textContent=txt;
   const la=document.getElementById('logo-admin');if(la)la.textContent=txt;
 }
- pendingProfile=null;
+let pendingProfile=null;
 async function enterProfile(p){
   pendingProfile=p;pinBuffer='';pinDots();
   document.getElementById('pin-error').textContent='';
@@ -1154,34 +1176,47 @@ async function renderCal(id){
   for(let i=0;i<off;i++)html+='<div class="cal-day empty"></div>';
   for(let d=1;d<=dim;d++){
     const ds=`${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-    const data=cal[ds]||{},turnos=data.turnos||[],esp=data.especiales||[],cierre=data.cierreManual||false,satTC=isSatTC(ds);
+    const data=cal[ds]||{},turnos=data.turnos||[],esp=data.especiales||[],cierre=data.cierreManual||esp.some(e=>e.tipo==='cierre'),satTC=isSatTC(ds);
     const abierto=esp.some(e=>e.tipo==='abierto');
     const tardeCerr=esp.some(e=>e.tipo==='tardecerrado');
     const dom=isDom(ds)&&!abierto,fest=getFestivo(ds)||esp.some(e=>e.tipo==='festivo');
     const isT=ds===today,isP=ds<today,isSel=sel.includes(ds);
     let cls='cal-day';
     if(dom||cierre)cls+=' closed-dom';
-    else{if(tardeCerr)cls+=' half-closed';if(fest&&!turnos.length&&!esp.filter(e=>e.tipo!=='festivo').length)cls+=' is-festivo';if(isP)cls+=' past';}
+    else{if(tardeCerr)cls+=' half-closed';if(fest)cls+=' is-festivo';if(isP)cls+=' past';}
     if(isT)cls+=' today';
     if(isSel)cls+=' selected';
-    let badge=dom?'🔴':cierre?'🔒':tardeCerr?'🌗':abierto&&isDom(ds)?'🔓':fest?'🎉':'';
+    let badge=(dom||cierre)?'🔴':tardeCerr?'🌗':(abierto&&isDom(ds))?'🔓':fest?'🎉':'';
+    // orden fijo: 1) turnos  2) azafata  3) saca/pedido saca
     const tChips=turnos.map(t=>{const ini=t.persona.charAt(0).toUpperCase()+'.';const ic=t.turno==='manana'?'☀':t.turno==='tarde'?'🌙':'🏖';return `<div class="cc chip-${t.turno}">${ic} ${ini}</div>`;}).join('');
-    const satNote=satTC&&!dom?'<div class="cc chip-sat">T.tarde↓cerr.</div>':'';
-    const eChips=esp.filter(e=>!['abierto','festivo','tardecerrado','cierre'].includes(e.tipo)).map(e=>`<div class="cc chip-${e.tipo}">${ESP_L[e.tipo]||'📎'}</div>`).join('')+(abierto&&isDom(ds)?'<div class="cc chip-abierto">🔓 Abierto</div>':'')+(tardeCerr?'<div class="cc chip-tardecerrado">🌗 T.cerrada</div>':'');
-    const festName=getFestivo(ds);
-    const fChip=fest?`<div class="cc chip-festivo">🎉 ${festName?festName.split(' ')[0]:'Festivo'}</div>`:'';
+    const azaChip=esp.filter(e=>e.tipo==='azafata').map(e=>`<div class="cc chip-azafata">${ESP_L.azafata}</div>`).join('');
+    const sacaChips=esp.filter(e=>e.tipo==='saca'||e.tipo==='pedidosaca').map(e=>`<div class="cc chip-${e.tipo}">${ESP_L[e.tipo]}</div>`).join('');
+    const otroChip=esp.filter(e=>e.tipo==='otro').map(e=>`<div class="cc chip-otro">${ESP_L.otro}</div>`).join('');
+    const satNote=(satTC&&!dom&&!cierre&&!tardeCerr)?'<div class="cc chip-sat">T.tarde↓cerr.</div>':'';
     const clickAttr=`onclick="calDayClick('${id}','${ds}')"`;
-    html+=`<div class="${cls}" ${clickAttr}><div class="cal-day-top"><span class="cdn">${d}</span><span class="cdb">${badge}</span></div><div class="cal-events">${fChip}${tChips}${satNote}${eChips}</div></div>`;
+    html+=`<div class="${cls}" ${clickAttr}><div class="cal-day-top"><span class="cdn">${d}</span><span class="cdb">${badge}</span></div><div class="cal-events">${tChips}${azaChip}${sacaChips}${otroChip}${satNote}</div></div>`;
   }
   gEl.innerHTML=html;
 }
 // modal evento — turnos por persona: {carmen:'manana'|null, rafa:..., maria:...}
-const evS={dates:[],calId:null,pt:{carmen:null,rafa:null,maria:null},esp:[]};
-function calAssign(id){const s=calSt[id]?.sel||[];if(!s.length){showToast('Selecciona al menos un día','error');return;}evS.dates=[...s];evS.calId=id;const ex=s.length===1?(window._cc||{})[s[0]]||{}:{};evS.pt={carmen:null,rafa:null,maria:null};(ex.turnos||[]).forEach(t=>{if(evS.pt.hasOwnProperty(t.persona))evS.pt[t.persona]=t.turno;});evS.esp=(ex.especiales||[]).map(e=>e.tipo);const lbl=s.length===1?new Date(s[0]+'T12:00:00').toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long',year:'numeric'}):`${s.length} días: ${fmtS(s[0])} → ${fmtS(s[s.length-1])}`;const modTxt=ex._mod?` · Últ. mod: ${ex._mod.por} el ${new Date(ex._mod.ts).toLocaleDateString('es-ES',{day:'2-digit',month:'2-digit'})} a las ${new Date(ex._mod.ts).toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'})}`:'';document.getElementById('mev-sub').textContent=lbl+modTxt;document.getElementById('mev-nota').value=ex.nota||'';refreshPTChips();document.querySelectorAll('#chip-esp .co').forEach(c=>{c.className='co'+(evS.esp.includes(c.dataset.val)?' sel-'+c.dataset.val:'');});document.getElementById('btn-del').style.display=s.length===1&&(ex.turnos?.length||ex.especiales?.length||ex.cierreManual)?'block':'none';openModal('modal-evento');}
-function refreshPTChips(){document.querySelectorAll('#persona-rows .chip-row').forEach(row=>{const p=row.dataset.persona;row.querySelectorAll('.pr-chip').forEach(c=>{const v=c.dataset.val;c.className='co pr-chip'+((v===''&&!evS.pt[p])?' on-none':(v&&evS.pt[p]===v)?' on-'+v:'');});});}
-function selPT(el,persona){const v=el.dataset.val||null;evS.pt[persona]=v;refreshPTChips();}
+const evS={dates:[],calId:null,pt:{carmen:[],rafa:[],maria:[]},esp:[]};
+function calAssign(id){const s=calSt[id]?.sel||[];if(!s.length){showToast('Selecciona al menos un día','error');return;}evS.dates=[...s];evS.calId=id;const ex=s.length===1?(window._cc||{})[s[0]]||{}:{};evS.pt={carmen:[],rafa:[],maria:[]};(ex.turnos||[]).forEach(t=>{if(evS.pt.hasOwnProperty(t.persona)&&!evS.pt[t.persona].includes(t.turno))evS.pt[t.persona].push(t.turno);});evS.esp=(ex.especiales||[]).map(e=>e.tipo);const lbl=s.length===1?new Date(s[0]+'T12:00:00').toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long',year:'numeric'}):`${s.length} días: ${fmtS(s[0])} → ${fmtS(s[s.length-1])}`;const modTxt=ex._mod?` · Últ. mod: ${ex._mod.por} el ${new Date(ex._mod.ts).toLocaleDateString('es-ES',{day:'2-digit',month:'2-digit'})} a las ${new Date(ex._mod.ts).toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'})}`:'';document.getElementById('mev-sub').textContent=lbl+modTxt;document.getElementById('mev-nota').value=ex.nota||'';refreshPTChips();document.querySelectorAll('#chip-esp .co, #chip-esp2 .co').forEach(c=>{c.className='co'+(evS.esp.includes(c.dataset.val)?' sel-'+c.dataset.val:'');});document.getElementById('btn-del').style.display=s.length===1&&(ex.turnos?.length||ex.especiales?.length||ex.cierreManual)?'block':'none';openModal('modal-evento');}
+function refreshPTChips(){document.querySelectorAll('#persona-rows .chip-row').forEach(row=>{const p=row.dataset.persona;row.querySelectorAll('.pr-chip').forEach(c=>{const v=c.dataset.val;const activos=evS.pt[p]||[];c.className='co pr-chip'+((v===''&&!activos.length)?' on-none':(v&&activos.includes(v))?' on-'+v:'');});});}
+function selPT(el,persona){
+  const v=el.dataset.val;
+  if(!evS.pt[persona])evS.pt[persona]=[];
+  if(v===''){evS.pt[persona]=[];refreshPTChips();return;}
+  // vacaciones es excluyente con mañana/tarde; mañana+tarde sí se pueden combinar
+  if(v==='vacaciones'){evS.pt[persona]=evS.pt[persona].includes('vacaciones')?[]:['vacaciones'];}
+  else{
+    evS.pt[persona]=evS.pt[persona].filter(x=>x!=='vacaciones');
+    const idx=evS.pt[persona].indexOf(v);
+    if(idx>=0)evS.pt[persona].splice(idx,1);else evS.pt[persona].push(v);
+  }
+  refreshPTChips();
+}
 function togE(el){const v=el.dataset.val,i=evS.esp.indexOf(v);if(i>=0){evS.esp.splice(i,1);el.className='co';}else{evS.esp.push(v);el.className='co sel-'+v;}}
-async function saveEvento(){const nota=document.getElementById('mev-nota').value.trim(),cal=await lC();const turnos=Object.entries(evS.pt).filter(([p,t])=>t).map(([p,t])=>({persona:p,turno:t}));const modInfo={por:(curP||'desconocido').toUpperCase(),ts:new Date().toISOString()};evS.dates.forEach(fecha=>{const entry={};if(turnos.length)entry.turnos=turnos;if(evS.esp.length){entry.especiales=evS.esp.map(t=>({tipo:t,nota}));if(evS.esp.includes('cierre'))entry.cierreManual=true;}if(nota)entry.nota=nota;if(Object.keys(entry).length){entry._mod=modInfo;cal[fecha]=entry;}else delete cal[fecha];});await sC(cal);await pushAudit(evS.dates,'modificado',modInfo);calSt[evS.calId].sel=[];updInfo(evS.calId);closeModal('modal-evento');renderCal(evS.calId);showToast(`✓ ${evS.dates.length} día${evS.dates.length>1?'s':''} guardado${evS.dates.length>1?'s':''}`, 'success');}
+async function saveEvento(){const nota=document.getElementById('mev-nota').value.trim(),cal=await lC();const turnos=[];Object.entries(evS.pt).forEach(([p,arr])=>{(arr||[]).forEach(t=>turnos.push({persona:p,turno:t}));});const modInfo={por:(curP||'desconocido').toUpperCase(),ts:new Date().toISOString()};evS.dates.forEach(fecha=>{const entry={};if(turnos.length)entry.turnos=turnos;if(evS.esp.length){entry.especiales=evS.esp.map(t=>({tipo:t,nota}));if(evS.esp.includes('cierre'))entry.cierreManual=true;}if(nota)entry.nota=nota;if(Object.keys(entry).length){entry._mod=modInfo;cal[fecha]=entry;}else delete cal[fecha];});await sC(cal);await pushAudit(evS.dates,'modificado',modInfo);calSt[evS.calId].sel=[];updInfo(evS.calId);closeModal('modal-evento');renderCal(evS.calId);showToast(`✓ ${evS.dates.length} día${evS.dates.length>1?'s':''} guardado${evS.dates.length>1?'s':''}`, 'success');}
 async function delEvento(){const cal=await lC();const modInfo={por:(curP||'desconocido').toUpperCase(),ts:new Date().toISOString()};evS.dates.forEach(f=>delete cal[f]);await sC(cal);await pushAudit(evS.dates,'eliminado',modInfo);calSt[evS.calId].sel=[];updInfo(evS.calId);closeModal('modal-evento');renderCal(evS.calId);showToast('Evento eliminado','error');}
 // ── auditoría de cambios en el calendario ──
 const AUDIT_KEY='estanco-audit';
@@ -1231,12 +1266,25 @@ async function openNominas(isJefe){
   }
   openModal('modal-nominas');
 }
+let previewData=null,previewName=null;
 async function downloadNomina(id,label){
   const data=await dbG('estanco-'+id);
   if(!data){showToast('No se pudo cargar el PDF','error');return;}
-  const a=document.createElement('a');a.href=data;a.download=label.replace(/[^a-zA-Z0-9áéíóúñÁÉÍÓÚÑ ]/g,'')+'.pdf';
+  previewData=data;previewName=label.replace(/[^a-zA-Z0-9áéíóúñÁÉÍÓÚÑ ]/g,'')+'.pdf';
+  document.getElementById('preview-title').textContent=label;
+  document.getElementById('preview-frame').src=data;
+  document.getElementById('preview-overlay').style.display='flex';
+}
+function closePreview(){
+  document.getElementById('preview-overlay').style.display='none';
+  document.getElementById('preview-frame').src='about:blank';
+  previewData=null;previewName=null;
+}
+function downloadPreviewedFile(){
+  if(!previewData)return;
+  const a=document.createElement('a');a.href=previewData;a.download=previewName;
   document.body.appendChild(a);a.click();document.body.removeChild(a);
-  showToast('✓ Nómina descargada','success');
+  showToast('✓ Descargado (si no ves el archivo, revisa Archivos/Descargas del móvil)','success');
 }
 async function delNomina(id){
   let idx=(await dbG(NOM_IDX))||[];
@@ -1329,6 +1377,22 @@ function confirmClear(){openModal('modal-clear');}
 async function clearAll(){await sF([]);closeModal('modal-clear');await loadAdmin();showToast('Registros eliminados','error');}
 let ttm=null;
 function showToast(msg,type=''){const t=document.getElementById('toast');t.textContent=msg;t.className='toast'+(type?' '+type:'');t.classList.add('show');clearTimeout(ttm);ttm=setTimeout(()=>t.classList.remove('show'),3200);}
+// ── tema claro / oscuro ──
+function applyTheme(theme){
+  document.documentElement.setAttribute('data-theme',theme);
+  const btn=document.getElementById('theme-btn');
+  if(btn)btn.textContent=theme==='light'?'☀️ Tema claro':'🌙 Tema oscuro';
+  try{localStorage.setItem('estanco-theme',theme);}catch(e){}
+}
+function toggleTheme(){
+  const current=document.documentElement.getAttribute('data-theme')==='light'?'light':'dark';
+  applyTheme(current==='light'?'dark':'light');
+}
+(function initTheme(){
+  let saved='dark';
+  try{saved=localStorage.getItem('estanco-theme')||'dark';}catch(e){}
+  applyTheme(saved);
+})();
 </script>
 </body>
 </html>
