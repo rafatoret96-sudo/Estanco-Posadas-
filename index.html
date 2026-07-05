@@ -760,12 +760,21 @@ const firebaseConfig = {
   appId: "1:484296019448:web:c31262e11920db1303da0d",
   measurementId: "G-2K1E3J0FTG"
 };
-let fdb=null,fauth=null;
+let fdb=null,fauth=null,fbInitError=null;
 try{
   firebase.initializeApp(firebaseConfig);
   fdb=firebase.database();
   fauth=firebase.auth();
-}catch(e){console.error('Firebase init error',e);}
+}catch(e){
+  console.error('Firebase init error',e);
+  fbInitError=(e && e.message) || String(e);
+}
+window.addEventListener('DOMContentLoaded',function(){
+  if(fbInitError){
+    const err=document.getElementById('login-error');
+    if(err){err.style.color='var(--red)';err.textContent='Error al iniciar Firebase: '+fbInitError;}
+  }
+});
 </script>
 <div id="lightbox" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:500;align-items:center;justify-content:center;padding:20px" onclick="this.style.display='none'">
   <img id="lightbox-img" style="max-width:100%;max-height:90dvh;border-radius:10px" alt="Justificante ampliado">
@@ -843,14 +852,35 @@ async function doLogin(){
   const email=document.getElementById('login-email').value.trim();
   const pass=document.getElementById('login-pass').value;
   const err=document.getElementById('login-error');
+  err.style.color='var(--red)';
   if(!email||!pass){err.textContent='Introduce correo y contraseña.';return;}
-  if(!fauth){err.textContent='Error de conexión con el servidor.';return;}
+  if(!fauth){err.textContent='Firebase Auth no se ha cargado. Revisa tu conexión y recarga la página. [fauth null]';return;}
   const btn=document.getElementById('login-btn');
   btn.textContent='Entrando…';btn.disabled=true;err.textContent='';
-  try{await fauth.signInWithEmailAndPassword(email,pass);}
-  catch(e){err.textContent=loginErrorMsg(e.code);}
-  btn.textContent='Iniciar sesión';btn.disabled=false;
+  let finished=false;
+  const safety=setTimeout(()=>{
+    if(finished)return;
+    finished=true;
+    err.textContent='La petición está tardando demasiado. Puede ser el bloqueador de contenido del navegador o la conexión. Prueba a recargar. [timeout 10s]';
+    btn.textContent='Iniciar sesión';btn.disabled=false;
+  },10000);
+  try{
+    await fauth.signInWithEmailAndPassword(email,pass);
+    finished=true;clearTimeout(safety);
+  }catch(e){
+    if(finished)return;
+    finished=true;clearTimeout(safety);
+    err.textContent=loginErrorMsg(e && e.code);
+    btn.textContent='Iniciar sesión';btn.disabled=false;
+  }
 }
+window.addEventListener('error',function(ev){
+  const err=document.getElementById('login-error');
+  if(err && document.getElementById('screen-login').classList.contains('active')){
+    err.style.color='var(--red)';
+    err.textContent='Error JS: '+(ev.message||'desconocido')+' ('+(ev.filename||'')+':'+(ev.lineno||'')+')';
+  }
+});
 async function doResetPass(){
   const email=document.getElementById('login-email').value.trim();
   const err=document.getElementById('login-error');
