@@ -58,6 +58,18 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-body);min-hei
 .sdot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
 .status-row.out .sdot{background:var(--red)}
 .status-row.in .sdot{background:var(--green);animation:pulse 2s infinite}
+.live-shift-card{display:flex;align-items:center;gap:14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;border-left:3px solid var(--muted);transition:border-color .3s}
+.live-shift-card.in{border-left-color:var(--green)}
+.live-shift-card.out{border-left-color:var(--red)}
+.lsc-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0;background:var(--muted)}
+.live-shift-card.in .lsc-dot{background:var(--green);animation:pulse 2s infinite}
+.live-shift-card.out .lsc-dot{background:var(--red)}
+.lsc-body{flex:1;min-width:0}
+.lsc-title{font-family:var(--font-head);font-size:15px;font-weight:700}
+.live-shift-card.in .lsc-title{color:var(--green)}
+.live-shift-card.out .lsc-title{color:var(--red)}
+.lsc-sub{font-size:12px;color:var(--muted);margin-top:2px}
+.lsc-timer{font-family:var(--font-head);font-size:22px;font-weight:700;color:var(--gold);flex-shrink:0;letter-spacing:.5px;font-variant-numeric:tabular-nums}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
 .fichar-btns{display:grid;grid-template-columns:1fr 1fr;gap:12px;width:100%}
 .fb{border:1px solid var(--border);border-radius:10px;background:var(--surface);padding:22px 10px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:10px;transition:all .18s;-webkit-tap-highlight-color:transparent;font-family:var(--font-head)}
@@ -424,6 +436,14 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-body);min-hei
   <!-- TAB REGISTROS -->
   <div class="tab-content active" id="admin-tab-registros">
     <div class="sec-ctx">👩‍💼 Fichajes de <strong>CARMEN MORENO JIMÉNEZ</strong></div>
+    <div class="live-shift-card out" id="live-shift-card">
+      <div class="lsc-dot"></div>
+      <div class="lsc-body">
+        <div class="lsc-title" id="lsc-title">Cargando estado…</div>
+        <div class="lsc-sub" id="lsc-sub">–</div>
+      </div>
+      <div class="lsc-timer" id="lsc-timer">--:--:--</div>
+    </div>
     <div><div class="section-title">Resumen del mes</div>
       <div class="stats-grid">
         <div class="stat-card"><div class="slbl">Días fichados</div><div class="sval gold" id="stat-dias">0</div></div>
@@ -835,7 +855,7 @@ function isSatTC(ds){const d=new Date(ds+'T12:00:00'),m=d.getMonth();return d.ge
 // nav
 let curP=null,clkInt=null;
 function showScr(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');}
-function goHome(){showScr('screen-home');clearInterval(clkInt);curP=null;}
+function goHome(){showScr('screen-home');clearInterval(clkInt);clearInterval(liveShiftInt);curP=null;}
 // ── autenticación con correo y contraseña ──
 function loginErrorMsg(code){
   const m={
@@ -1165,7 +1185,40 @@ async function saveEditInc(){
 function selInc(el){document.querySelectorAll('.io').forEach(o=>o.classList.remove('sel'));el.classList.add('sel');incT=el.dataset.val;document.getElementById('inc-horas').style.display=['medico','familiar','lactancia'].includes(incT)?'block':'none';}
 async function saveInc(){if(!incT){showToast('Selecciona un tipo','error');return;}const fe=document.getElementById('inc-fecha').value;if(!fe){showToast('Indica la fecha','error');return;}const nota=document.getElementById('inc-nota').value.trim(),hs=document.getElementById('inc-hs').value,hv=document.getElementById('inc-hv').value;const f=await lF();const rec={tipo:'incidencia',subtipo:incT,timestamp:new Date(fe+'T12:00:00').toISOString(),fecha:fe,nota:nota||INC_L[incT],manual:true};if(hs)rec.horaSalida=hs;if(hv)rec.horaVuelta=hv;if(incFoto)rec.foto=incFoto;f.push(rec);f.sort((a,b)=>a.timestamp.localeCompare(b.timestamp));await sF(f);updUI(f);closeModal('modal-inc');showToast('✓ '+INC_L[incT]+' registrado','success');}
 // admin
-async function loadAdmin(){const f=await lF();updStats(f);popFilter(f);await renderRecords();}
+async function loadAdmin(){const f=await lF();updStats(f);updateLiveShift(f);popFilter(f);await renderRecords();}
+// ── fichaje en tiempo real (vista de jefes) ──
+let liveShiftInt=null,liveShiftEntrada=null;
+function updateLiveShift(f){
+  const card=document.getElementById('live-shift-card');
+  if(!card)return;
+  const today=new Date().toISOString().slice(0,10);
+  const todays=f.filter(x=>(x.tipo==='entrada'||x.tipo==='salida')&&(x.fecha||x.timestamp.slice(0,10))===today);
+  const last=todays.pop();
+  const ins=last&&last.tipo==='entrada';
+  const title=document.getElementById('lsc-title'),sub=document.getElementById('lsc-sub'),timer=document.getElementById('lsc-timer');
+  card.classList.toggle('in',!!ins);
+  card.classList.toggle('out',!ins);
+  if(ins){
+    liveShiftEntrada=new Date(last.timestamp);
+    title.textContent='Carmen está trabajando ahora mismo';
+    sub.textContent='Entrada a las '+liveShiftEntrada.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'});
+  }else{
+    liveShiftEntrada=null;
+    title.textContent=last?'Carmen no está fichada':'Carmen no ha fichado hoy';
+    sub.textContent=last?('Última salida a las '+new Date(last.timestamp).toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'})):'Sin actividad registrada hoy';
+    if(timer)timer.textContent='--:--:--';
+  }
+  startLiveShiftClock();
+}
+function tickLiveShift(){
+  const timer=document.getElementById('lsc-timer');
+  if(!timer)return;
+  if(!liveShiftEntrada){timer.textContent='--:--:--';return;}
+  const diff=Math.max(0,Date.now()-liveShiftEntrada.getTime());
+  const h=Math.floor(diff/3600000),m=Math.floor((diff%3600000)/60000),s=Math.floor((diff%60000)/1000);
+  timer.textContent=String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+}
+function startLiveShiftClock(){clearInterval(liveShiftInt);tickLiveShift();liveShiftInt=setInterval(tickLiveShift,1000);}
 function gByDay(f){const g={};f.forEach(x=>{const d=(x.fecha||x.timestamp.slice(0,10));if(!g[d])g[d]=[];g[d].push(x);});return g;}
 function getPairs(e){const s=[...e].filter(x=>x.tipo==='entrada'||x.tipo==='salida').sort((a,b)=>a.timestamp.localeCompare(b.timestamp));const p=[];let en=null;s.forEach(x=>{if(x.tipo==='entrada'){en=x;}else if(x.tipo==='salida'&&en){p.push([en,x]);en=null;}else if(x.tipo==='salida'){p.push([null,x]);}});if(en)p.push([en,null]);return p;}
 function calcMin(e){let t=0;getPairs(e).forEach(([a,b])=>{if(a&&b)t+=(new Date(b.timestamp)-new Date(a.timestamp))/60000;});return t;}
@@ -1407,7 +1460,7 @@ if(fdb){
     const v=snap.val();if(v!==null){try{localStorage.setItem(FK,v);}catch(e){}}
     // refrescar la vista activa
     if(document.getElementById('screen-fichar').classList.contains('active')){lF().then(updUI);}
-    if(document.getElementById('screen-admin').classList.contains('active')&&document.getElementById('admin-tab-registros').classList.contains('active')){lF().then(f=>{updStats(f);renderRecords();});}
+    if(document.getElementById('screen-admin').classList.contains('active')&&document.getElementById('admin-tab-registros').classList.contains('active')){lF().then(f=>{updStats(f);updateLiveShift(f);renderRecords();});}
   });
   fdb.ref(CK).on('value',snap=>{
     if(firstC){firstC=false;return;}
